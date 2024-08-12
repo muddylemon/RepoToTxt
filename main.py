@@ -2,7 +2,7 @@ import os
 from github import Github
 from tqdm import tqdm
 
-ADD_INSTRUCTIONS = True
+ADD_INSTRUCTIONS = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 if not GITHUB_TOKEN:
@@ -152,6 +152,8 @@ if __name__ == '__main__':
         repo_name, instructions, readme_content, repo_structure, file_contents = get_repo_contents(
             repo_url)
         output_filename = f'./outputs/{repo_name}_contents.txt'
+        if not os.path.exists('./outputs'):
+            os.makedirs('./outputs')
         with open(output_filename, 'w', encoding='utf-8') as f:
             f.write(instructions)
             f.write(f"README:\n{readme_content}\n\n")
