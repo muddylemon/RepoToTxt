@@ -1,9 +1,15 @@
 import os
+import re
+import ast
 from github import Github
 from tqdm import tqdm
+from summarize_code import summarize_code
+
 
 ADD_INSTRUCTIONS = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+SUMMARIZE_CODE = False
+MAX_LINES_PER_FILE = 1200
 
 if not GITHUB_TOKEN:
     raise ValueError("Please set the 'GITHUB_TOKEN' environment variable.")
@@ -42,46 +48,35 @@ def traverse_repo_iteratively(repo):
     return structure
 
 
+def is_binary_file(file_name):
+    binary_extensions = [
+        '.pyc', '.exe', '.dll', '.so', '.dylib', '.zip', '.tar.gz',
+        '.pdf', '.jpg', '.jpeg', '.png', '.svg', '.ico',
+        '.woff', '.woff2', '.ttf', '.eot',
+        '.mp4', '.avi', '.mov', '.wmv',
+        '.wav', '.mp3', '.ogg', '.flac',
+        '.bmp', '.gif', '.webp', '.tiff',
+        '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.min.js', '.min.css'
+    ]
+    return any(file_name.lower().endswith(ext) for ext in binary_extensions)
+
+
+def is_ignored_file(file_name):
+    ignored_files = [
+        '__pycache__', '.git', 'node_modules', 'venv', '.venv', 'env',
+        'README.md', 'README.txt', 'README',
+        'LICENSE', 'LICENSE.txt', 'LICENSE.md',
+        'package-lock.json', 'yarn.lock', 'bun.lockb',
+        '.DS_Store', 'Thumbs.db'
+    ]
+    return any(ignored in file_name for ignored in ignored_files)
+
+
 def get_file_contents_iteratively(repo):
     file_contents = ""
     dirs_to_visit = [("", repo.get_contents(""))]
     dirs_visited = set()
-    binary_extensions = [
-        # Compiled executables and libraries
-        '.exe', '.dll', '.so', '.a', '.lib', '.dylib', '.o', '.obj',
-        # Compressed archives
-        '.zip', '.tar', '.tar.gz', '.tgz', '.rar', '.7z', '.bz2', '.gz', '.xz', '.z', '.lz', '.lzma', '.lzo', '.rz', '.sz', '.dz',
-        # Application-specific files
-        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods', '.odp',
-        # Media files (less common)
-        '.png', '.jpg', '.jpeg', '.gif', '.mp3', '.mp4', '.wav', '.flac', '.ogg', '.avi', '.mkv', '.mov', '.webm', '.wmv', '.m4a', '.aac',
-        # Virtual machine and container images
-        '.iso', '.vmdk', '.qcow2', '.vdi', '.vhd', '.vhdx', '.ova', '.ovf',
-        # Database files
-        '.db', '.sqlite', '.mdb', '.accdb', '.frm', '.ibd', '.dbf',
-        # Java-related files
-        '.jar', '.class', '.war', '.ear', '.jpi',
-        # Python bytecode and packages
-        '.pyc', '.pyo', '.pyd', '.egg', '.whl',
-        # Other potentially important extensions
-        '.deb', '.rpm', '.apk', '.msi', '.dmg', '.pkg', '.bin', '.dat', '.data',
-        '.dump', '.img', '.toast', '.vcd', '.crx', '.xpi',
-        '.eot', '.otf', '.ttf', '.woff', '.woff2',
-        '.ico', '.icns', '.cur',
-        '.cab', '.dmp', '.msp', '.msm',
-        '.keystore', '.jks', '.truststore', '.cer', '.crt', '.der', '.p7b', '.p7c', '.p12', '.pfx', '.pem', '.csr',
-        '.key', '.pub', '.sig', '.pgp', '.gpg',
-        '.nupkg', '.snupkg', '.appx', '.msix', '.msp', '.msu',
-        '.deb', '.rpm', '.snap', '.flatpak', '.appimage',
-        '.ko', '.sys', '.elf',
-        '.swf', '.fla', '.swc',
-        '.rlib', '.pdb', '.idb', '.pdb', '.dbg',
-        '.sdf', '.bak', '.tmp', '.temp', '.log', '.tlog', '.ilk',
-        '.bpl', '.dcu', '.dcp', '.dcpil', '.drc',
-        '.aps', '.res', '.rsrc', '.rc', '.resx',
-        '.prefs', '.properties', '.ini', '.cfg', '.config', '.conf',
-        '.DS_Store', '.localized', '.svn', '.git', '.gitignore', '.gitkeep', '.lockb', 'package-lock.json', '.svg', 'LICENSE'
-    ]
 
     while dirs_to_visit:
         path, contents = dirs_to_visit.pop()
@@ -92,13 +87,12 @@ def get_file_contents_iteratively(repo):
                     dirs_to_visit.append(
                         (f"{path}/{content.name}", repo.get_contents(content.path)))
             else:
-                # Check if the file extension suggests it's a binary file
-                if any(content.name.endswith(ext) for ext in binary_extensions):
-                    file_contents += f"File: {path}/{content.name}\nContent: Skipped ignored file\n\n"
+                full_path = f"{path}/{content.name}"
+                if is_binary_file(content.name) or is_ignored_file(full_path):
+                    file_contents += f"File: {
+                        full_path}\nContent: Skipped binary or ignored file\n\n"
                 else:
-                    if content.name == 'README.md':
-                        continue
-                    file_contents += f"File: {path}/{content.name}\n"
+                    file_contents += f"File: {full_path}\n"
                     try:
                         if content.encoding is None or content.encoding == 'none':
                             file_contents += "Content: Skipped due to missing encoding\n\n"
@@ -106,12 +100,20 @@ def get_file_contents_iteratively(repo):
                             try:
                                 decoded_content = content.decoded_content.decode(
                                     'utf-8')
-                                file_contents += f"Content:\n{decoded_content}\n\n"
+                                if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
+                                    decoded_content = summarize_code(
+                                        decoded_content)
+                                file_contents += f"Content:\n{
+                                    decoded_content}\n\n"
                             except UnicodeDecodeError:
                                 try:
                                     decoded_content = content.decoded_content.decode(
                                         'latin-1')
-                                    file_contents += f"Content (Latin-1 Decoded):\n{decoded_content}\n\n"
+                                    if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
+                                        decoded_content = summarize_code(
+                                            decoded_content)
+                                    file_contents += f"Content (Latin-1 Decoded):\n{
+                                        decoded_content}\n\n"
                                 except UnicodeDecodeError:
                                     file_contents += "Content: Skipped due to unsupported encoding\n\n"
                     except (AttributeError, UnicodeDecodeError):
