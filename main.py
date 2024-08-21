@@ -89,13 +89,13 @@ def get_file_contents_iteratively(repo):
             else:
                 full_path = f"{path}/{content.name}"
                 if is_binary_file(content.name) or is_ignored_file(full_path):
-                    file_contents += f"File: {
-                        full_path}\nContent: Skipped binary or ignored file\n\n"
+                    file_contents += f"""File: {
+                        full_path}\nContent: Skipped binary or ignored file\n\n"""
                 else:
-                    file_contents += f"File: {full_path}\n"
+                    file_contents += f"""File: {full_path}\n"""
                     try:
                         if content.encoding is None or content.encoding == 'none':
-                            file_contents += "Content: Skipped due to missing encoding\n\n"
+                            file_contents += """Content: Skipped due to missing encoding\n\n"""
                         else:
                             try:
                                 decoded_content = content.decoded_content.decode(
@@ -103,8 +103,8 @@ def get_file_contents_iteratively(repo):
                                 if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
                                     decoded_content = summarize_code(
                                         decoded_content)
-                                file_contents += f"Content:\n{
-                                    decoded_content}\n\n"
+                                file_contents += f"""Content: \n{
+                                    decoded_content}\n\n"""
                             except UnicodeDecodeError:
                                 try:
                                     decoded_content = content.decoded_content.decode(
@@ -112,8 +112,8 @@ def get_file_contents_iteratively(repo):
                                     if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
                                         decoded_content = summarize_code(
                                             decoded_content)
-                                    file_contents += f"Content (Latin-1 Decoded):\n{
-                                        decoded_content}\n\n"
+                                    file_contents += f"""Content(Latin-1 Decoded): \n{
+                                        decoded_content}\n\n"""
                                 except UnicodeDecodeError:
                                     file_contents += "Content: Skipped due to unsupported encoding\n\n"
                     except (AttributeError, UnicodeDecodeError):
