@@ -46,6 +46,14 @@ def is_ignored_file(file_name):
     return file_name in ignored_files
 
 
+def is_ignored_filetype(file_name):
+    """ignore binary files, svg files, and image files"""
+    ignored_filetypes = (
+        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp', '.tiff', '.tif', '.psd', '.raw', '.heif', '.indd', '.ai', '.eps', '.pdf', '.jfif', '.pct', '.pic', '.pict', '.pntg', '.svgz', '.vsdx', '.vsd', '.vss', '.vst', '.vdx', '.vsx', '.vtx', '.vdx', '.vsx', '.vtx', '.vst', '.vssx', '.vstx', '.vsw', '.vsta'
+    )
+    return file_name.lower().endswith(ignored_filetypes)
+
+
 def get_directory_structure(directory):
     """Get the directory structure."""
     structure = []
@@ -69,11 +77,15 @@ def get_file_contents(directory):
         for file in files:
             if is_ignored_file(file):
                 continue
+            if is_ignored_filetype(file):
+                continue
+
             file_path = os.path.join(root, file)
             relative_path = os.path.relpath(file_path, directory)
 
             if is_binary_file(file_path):
-                file_contents += f"File: {relative_path}\nContent: Skipped binary file\n\n"
+                file_contents += f"File: {
+                    relative_path}\nContent: Skipped binary file\n\n"
                 continue
 
             try:
@@ -81,9 +93,11 @@ def get_file_contents(directory):
                     content = f.read()
                     if SUMMARIZE_CODE and file.endswith(('.py', '.js', '.java', '.cpp', '.c')):
                         content = summarize_code(content)
-                    file_contents += f"File: {relative_path}\nContent:\n{content}\n\n"
+                    file_contents += f"File: {
+                        relative_path}\nContent:\n{content}\n\n"
             except Exception as e:
-                file_contents += f"File: {relative_path}\nError reading file: {str(e)}\n\n"
+                file_contents += f"File: {
+                    relative_path}\nError reading file: {str(e)}\n\n"
 
     return file_contents
 
