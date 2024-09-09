@@ -1,35 +1,61 @@
 import os
-import re
-import ast
+import argparse
 from github import Github
 from tqdm import tqdm
+
 from summarize_code import summarize_code
 
-
+# Constants
 ADD_INSTRUCTIONS = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 SUMMARIZE_CODE = False
 MAX_LINES_PER_FILE = 1200
 
-if not GITHUB_TOKEN:
-    raise ValueError("Please set the 'GITHUB_TOKEN' environment variable.")
+# Utility functions
+def is_binary_file(file_path):
+    try:
+        with open(file_path, 'tr') as check_file:
+            check_file.read()
+            return False
+    except:
+        return True
+
+def is_ignored_directory(dir_name):
+    ignored_dirs = {
+        '.git', 'node_modules', 'venv', '.venv', 'env',
+        '__pycache__', 'build', 'dist', '.idea', '.vscode'
+    }
+    return dir_name in ignored_dirs
+
+def is_ignored_file(file_name):
+    ignored_files = {
+        'README.md', 'README.txt', 'README',
+        'LICENSE', 'LICENSE.txt', 'LICENSE.md',
+        'package-lock.json', 'yarn.lock', 'bun.lockb',
+        '.DS_Store', 'Thumbs.db', '.gitignore'
+    }
+    return file_name in ignored_files
+
+def is_ignored_filetype(file_name):
+    ignored_filetypes = (
+        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp', '.tiff',
+        '.tif', '.psd', '.raw', '.heif', '.indd', '.ai', '.eps', '.pdf', '.jfif',
+        '.pct', '.pic', '.pict', '.pntg', '.svgz', '.vsdx', '.vsd', '.vss', '.vst',
+        '.vdx', '.vsx', '.vtx', '.vdx', '.vsx', '.vtx', '.vst', '.vssx', '.vstx',
+        '.vsw', '.vsta'
+    )
+    return file_name.lower().endswith(ignored_filetypes)
 
 
+# GitHub repository analysis functions
 def get_readme_content(repo):
-    """
-    Retrieve the content of the README file.
-    """
     try:
         readme = repo.get_contents("README.md")
         return readme.decoded_content.decode('utf-8')
     except:
         return "README not found."
 
-
 def traverse_repo_iteratively(repo):
-    """
-    Traverse the repository iteratively to avoid recursion limits for large repositories.
-    """
     structure = ""
     dirs_to_visit = [("", repo.get_contents(""))]
     dirs_visited = set()
@@ -47,32 +73,6 @@ def traverse_repo_iteratively(repo):
                 structure += f"{path}/{content.name}\n"
     return structure
 
-
-def is_binary_file(file_name):
-    binary_extensions = [
-        '.pyc', '.exe', '.dll', '.so', '.dylib', '.zip', '.tar.gz',
-        '.pdf', '.jpg', '.jpeg', '.png', '.svg', '.ico',
-        '.woff', '.woff2', '.ttf', '.eot',
-        '.mp4', '.avi', '.mov', '.wmv',
-        '.wav', '.mp3', '.ogg', '.flac',
-        '.bmp', '.gif', '.webp', '.tiff',
-        '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-        '.min.js', '.min.css'
-    ]
-    return any(file_name.lower().endswith(ext) for ext in binary_extensions)
-
-
-def is_ignored_file(file_name):
-    ignored_files = [
-        '__pycache__', '.git', 'node_modules', 'venv', '.venv', 'env',
-        'README.md', 'README.txt', 'README',
-        'LICENSE', 'LICENSE.txt', 'LICENSE.md',
-        'package-lock.json', 'yarn.lock', 'bun.lockb',
-        '.DS_Store', 'Thumbs.db'
-    ]
-    return any(ignored in file_name for ignored in ignored_files)
-
-
 def get_file_contents_iteratively(repo):
     file_contents = ""
     dirs_to_visit = [("", repo.get_contents(""))]
@@ -89,42 +89,31 @@ def get_file_contents_iteratively(repo):
             else:
                 full_path = f"{path}/{content.name}"
                 if is_binary_file(content.name) or is_ignored_file(full_path):
-                    file_contents += f"""File: {
-                        full_path}\nContent: Skipped binary or ignored file\n\n"""
+                    file_contents += f"File: {full_path}\nContent: Skipped binary or ignored file\n\n"
                 else:
-                    file_contents += f"""File: {full_path}\n"""
+                    file_contents += f"File: {full_path}\n"
                     try:
                         if content.encoding is None or content.encoding == 'none':
-                            file_contents += """Content: Skipped due to missing encoding\n\n"""
+                            file_contents += "Content: Skipped due to missing encoding\n\n"
                         else:
                             try:
-                                decoded_content = content.decoded_content.decode(
-                                    'utf-8')
+                                decoded_content = content.decoded_content.decode('utf-8')
                                 if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
-                                    decoded_content = summarize_code(
-                                        decoded_content)
-                                file_contents += f"""Content: \n{
-                                    decoded_content}\n\n"""
+                                    decoded_content = summarize_code(decoded_content)
+                                file_contents += f"Content:\n{decoded_content}\n\n"
                             except UnicodeDecodeError:
                                 try:
-                                    decoded_content = content.decoded_content.decode(
-                                        'latin-1')
+                                    decoded_content = content.decoded_content.decode('latin-1')
                                     if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
-                                        decoded_content = summarize_code(
-                                            decoded_content)
-                                    file_contents += f"""Content(Latin-1 Decoded): \n{
-                                        decoded_content}\n\n"""
+                                        decoded_content = summarize_code(decoded_content)
+                                    file_contents += f"Content (Latin-1 Decoded):\n{decoded_content}\n\n"
                                 except UnicodeDecodeError:
                                     file_contents += "Content: Skipped due to unsupported encoding\n\n"
                     except (AttributeError, UnicodeDecodeError):
                         file_contents += "Content: Skipped due to decoding error or missing decoded_content\n\n"
     return file_contents
 
-
-def get_repo_contents(repo_url):
-    """
-    Main function to get repository contents.
-    """
+def analyze_github_repo(repo_url):
     repo_name = repo_url.split('/')[-1]
 
     g = Github(GITHUB_TOKEN)
@@ -140,31 +129,99 @@ def get_repo_contents(repo_url):
     print(f"\nFetching file contents for: {repo_name}")
     file_contents = get_file_contents_iteratively(repo)
 
-    instructions = ""
-    if ADD_INSTRUCTIONS:
-        with open('llm_instructions.txt', 'r') as f:
-            instructions = f.read()
+    return repo_name, readme_content, repo_structure, file_contents
 
-    return repo_name, instructions, readme_content, repo_structure, file_contents
+# Local directory analysis functions
+def get_directory_structure(directory):
+    structure = []
+    for root, dirs, files in os.walk(directory):
+        dirs[:] = [d for d in dirs if not is_ignored_directory(d)]
+        level = root.replace(directory, '').count(os.sep)
+        indent = ' ' * 4 * level
+        structure.append(f'{indent}{os.path.basename(root)}/')
+        subindent = ' ' * 4 * (level + 1)
+        for file in files:
+            if not is_ignored_file(file):
+                structure.append(f'{subindent}{file}')
+    return '\n'.join(structure)
 
+def get_file_contents(directory):
+    file_contents = ""
+    for root, dirs, files in tqdm(os.walk(directory), desc="Processing files", unit="file"):
+        dirs[:] = [d for d in dirs if not is_ignored_directory(d)]
+        for file in files:
+            if is_ignored_file(file):
+                continue
+            if is_ignored_filetype(file):
+                continue
+
+            file_path = os.path.join(root, file)
+            relative_path = os.path.relpath(file_path, directory)
+
+            if is_binary_file(file_path):
+                file_contents += f"File: {relative_path}\nContent: Skipped binary file\n\n"
+                continue
+
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    if SUMMARIZE_CODE and file.endswith(('.py', '.js', '.java', '.cpp', '.c')):
+                        content = summarize_code(content)
+                    file_contents += f"File: {relative_path}\nContent:\n{content}\n\n"
+            except Exception as e:
+                file_contents += f"File: {relative_path}\nError reading file: {str(e)}\n\n"
+
+    return file_contents
+
+def get_readme_content_local(directory):
+    readme_files = ['README.md', 'README.txt', 'README']
+    for readme in readme_files:
+        readme_path = os.path.join(directory, readme)
+        if os.path.exists(readme_path):
+            with open(readme_path, 'r', encoding='utf-8') as f:
+                return f.read()
+    return "README not found."
+
+def analyze_local_directory(directory):
+    print(f"Analyzing directory: {directory}")
+
+    readme_content = get_readme_content_local(directory)
+    print("README content retrieved.")
+
+    print("Generating directory structure...")
+    dir_structure = get_directory_structure(directory)
+
+    print("Processing file contents...")
+    file_contents = get_file_contents(directory)
+
+    return os.path.basename(os.path.abspath(directory)), readme_content, dir_structure, file_contents
+
+# Main function
+def analyze_input(input_path):
+    if input_path.startswith(('http://', 'https://')):
+        if not GITHUB_TOKEN:
+            raise ValueError("Please set the 'GITHUB_TOKEN' environment variable for GitHub repository analysis.")
+        return analyze_github_repo(input_path)
+    elif os.path.isdir(input_path):
+        return analyze_local_directory(input_path)
+    else:
+        raise ValueError("Invalid input. Please provide a valid GitHub repository URL or local directory path.")
 
 if __name__ == '__main__':
-    repo_url = input("Please enter the GitHub repository URL: ")
+    parser = argparse.ArgumentParser(description="Analyze a GitHub repository or local directory.")
+    parser.add_argument("input_path", help="GitHub repository URL or path to the local directory to analyze")
+    args = parser.parse_args()
+
     try:
-        repo_name, instructions, readme_content, repo_structure, file_contents = get_repo_contents(
-            repo_url)
-        output_filename = f'./outputs/{repo_name}_contents.txt'
-        if not os.path.exists('./outputs'):
-            os.makedirs('./outputs')
+        name, readme_content, structure, file_contents = analyze_input(args.input_path)
+        
+        output_filename = f'outputs/{name}_analysis.txt'
         with open(output_filename, 'w', encoding='utf-8') as f:
-            f.write(instructions)
             f.write(f"README:\n{readme_content}\n\n")
-            f.write(repo_structure)
-            f.write('\n\n')
-            f.write(file_contents)
-        print(f"Repository contents saved to '{output_filename}'.")
-    except ValueError as ve:
-        print(f"Error: {ve}")
+            f.write(f"Structure:\n{structure}\n\n")
+            f.write(f"File Contents:\n{file_contents}")
+
+        print(f"Analysis saved to '{output_filename}'.")
     except Exception as e:
         print(f"An error occurred: {e}")
-        print("Please check the repository URL and try again.")
+        print("Please check the input and try again.")
