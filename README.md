@@ -6,68 +6,76 @@ Gather all the info your LLM needs to understand your repo in one command.
 
 Create a virtual environment and then run:
 
-```bash
+```
 pip install -r ./requirements.txt
 ```
 
-For GitHub repositories, create a personal access token on Github and add it to your environment variables:
+Create a personal access token on Github and add it to your environment variables.
 
 ### Powershell
 
-```powershell
+```
 $env:GITHUB_TOKEN="your-token"
 ```
 
 ### Bash
 
-```bash
+```
 export GITHUB_TOKEN="your-token"
 ```
 
 ## How To Use
 
-Run the script with either a GitHub repository URL or a path to a local directory as an argument:
+### Analyzing a GitHub Repository
 
-```bash
-python main.py <github_url_or_local_path>
+Run `python main.py` and paste your target repo's GitHub URL when prompted:
+
+```
+python main.py https://github.com/username/repository
 ```
 
-### For GitHub Repositories:
+Your results will be saved as `outputs/{REPO_NAME}_analysis.txt`
 
-Use the full GitHub URL, e.g.:
+### Analyzing a Local Directory
 
-```bash
-python main.py https://github.com/username/repo-name
+To analyze a local directory, provide the path to the directory:
+
+```
+python main.py /path/to/your/directory
 ```
 
-### For Local Directories:
+### Analyzing Specific Subdirectories
 
-Use the path to the local directory, e.g.:
+You can now analyze specific subdirectories within a local directory. Use the following syntax:
 
-```bash
-python main.py ../RepoToTxt
+```
+python main.py /path/to/base/directory [subdir1] [subdir2] [subdir3]
 ```
 
-Your results will be saved as `{REPO_NAME}_analysis.txt` in the `outputs/` directory.
+For example:
+
+```
+python main.py ../mycoolapp/cloud checkout functions admin
+```
+
+This will create separate analysis files for each subdirectory in the `outputs` folder:
+
+- `outputs/checkout_analysis.txt`
+- `outputs/functions_analysis.txt`
+- `outputs/admin_analysis.txt`
 
 ## Configuration
 
-You can update the value of `ADD_INSTRUCTIONS` in the script if you wish to add LLM instructions to the file.
+Update the value of `ADD_INSTRUCTIONS` in `main.py` if you wish to add LLM instructions to the file.
 
-## Project Structure
+## Output
 
-```
-RepoToTxt/
-    analyze_directory.py
-    requirements.txt
-    summarize_code.py
-    repototxt.py
-    llm_instructions.txt
-    main.py
-    outputs/
-        {REPO_NAME}_analysis.txt
-```
+The analysis output includes:
+
+1. README content
+2. Repository/directory structure
+3. File contents (with optional summarization for large files)
 
 ## Note
 
-This tool supports both GitHub repositories and local directories. It automatically detects the input type based on the provided argument and processes accordingly.
+When analyzing GitHub repositories, ensure that your `GITHUB_TOKEN` environment variable is set correctly.
