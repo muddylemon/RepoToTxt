@@ -3,15 +3,11 @@ import argparse
 from github import Github
 from tqdm import tqdm
 
-from summarize_code import summarize_code
 
 # Constants
 ADD_INSTRUCTIONS = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-SUMMARIZE_CODE = False
 MAX_LINES_PER_FILE = 1200
-
-# Utility functions
 
 
 def is_binary_file(file_path):
@@ -107,18 +103,12 @@ def get_file_contents_iteratively(repo):
                             try:
                                 decoded_content = content.decoded_content.decode(
                                     'utf-8')
-                                if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
-                                    decoded_content = summarize_code(
-                                        decoded_content)
                                 file_contents += f"Content:\n{
                                     decoded_content}\n\n"
                             except UnicodeDecodeError:
                                 try:
                                     decoded_content = content.decoded_content.decode(
                                         'latin-1')
-                                    if SUMMARIZE_CODE and content.name.endswith(('.py', '.js', '.java', '.cpp', '.c')):
-                                        decoded_content = summarize_code(
-                                            decoded_content)
                                     file_contents += f"Content (Latin-1 Decoded):\n{
                                         decoded_content}\n\n"
                                 except UnicodeDecodeError:
@@ -184,8 +174,6 @@ def get_file_contents(directory):
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    if SUMMARIZE_CODE and file.endswith(('.py', '.js', '.java', '.cpp', '.c')):
-                        content = summarize_code(content)
                     file_contents += f"File: {
                         relative_path}\nContent:\n{content}\n\n"
             except Exception as e:
