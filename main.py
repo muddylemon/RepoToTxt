@@ -92,8 +92,7 @@ def get_file_contents_iteratively(repo):
             else:
                 full_path = f"{path}/{content.name}"
                 if is_binary_file(content.name) or is_ignored_file(full_path):
-                    file_contents += f"File: {
-                        full_path}\nContent: Skipped binary or ignored file\n\n"
+                    file_contents += f"File: {full_path}\nContent: Skipped binary or ignored file\n\n"
                 else:
                     file_contents += f"File: {full_path}\n"
                     try:
@@ -103,14 +102,12 @@ def get_file_contents_iteratively(repo):
                             try:
                                 decoded_content = content.decoded_content.decode(
                                     'utf-8')
-                                file_contents += f"Content:\n{
-                                    decoded_content}\n\n"
+                                file_contents += f"Content: \n{decoded_content}\n\n"
                             except UnicodeDecodeError:
                                 try:
                                     decoded_content = content.decoded_content.decode(
                                         'latin-1')
-                                    file_contents += f"Content (Latin-1 Decoded):\n{
-                                        decoded_content}\n\n"
+                                    file_contents += f"Content(Latin-1 Decoded): \n{decoded_content}\n\n"
                                 except UnicodeDecodeError:
                                     file_contents += "Content: Skipped due to unsupported encoding\n\n"
                     except (AttributeError, UnicodeDecodeError):
@@ -167,18 +164,15 @@ def get_file_contents(directory):
             relative_path = os.path.relpath(file_path, directory)
 
             if is_binary_file(file_path):
-                file_contents += f"File: {
-                    relative_path}\nContent: Skipped binary file\n\n"
+                file_contents += f"File: {relative_path}\nContent: Skipped binary file\n\n"
                 continue
 
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    file_contents += f"File: {
-                        relative_path}\nContent:\n{content}\n\n"
+                    file_contents += f"File: {relative_path}\nContent:\n{content}\n\n"
             except Exception as e:
-                file_contents += f"File: {
-                    relative_path}\nError reading file: {str(e)}\n\n"
+                file_contents += f"File: {relative_path}\nError reading file: {str(e)}\n\n"
 
     return file_contents
 
