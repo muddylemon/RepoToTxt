@@ -22,7 +22,7 @@ def is_binary_file(file_path):
 def is_ignored_directory(dir_name):
     ignored_dirs = {
         '.git', 'node_modules', 'venv', '.venv', 'env',
-        '__pycache__', 'build', 'dist', '.idea', '.vscode'
+        '__pycache__', 'build', 'dist', '.idea', '.vscode', '.next'
     }
     return dir_name in ignored_dirs
 
