@@ -132,7 +132,3 @@ Your analysis file includes:
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
-
-## 📜 License
-
-[Include your license information here]
