@@ -1,81 +1,138 @@
-# RepoToTxt
+# RepoToTxt 📁✨
 
-Gather all the info your LLM needs to understand your repo in one command.
+**Turn your codebase into a single text file for LLM analysis—with just one command!**
 
-## Prerequisites
+RepoToTxt makes it super easy to analyze your repositories with AI tools. Feed your entire project to your favorite LLM without the hassle of copying files one by one.
 
-Create a virtual environment and then run:
+## 🚀 Quick Start
 
-```
-pip install -r ./requirements.txt
-```
+### Prerequisites
 
-Create a personal access token on Github and add it to your environment variables.
+First, create a virtual environment and install the required packages:
 
-### Powershell
+```bash
+# Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-```
-$env:GITHUB_TOKEN="your-token"
-```
-
-### Bash
-
-```
-export GITHUB_TOKEN="your-token"
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-## How To Use
+For GitHub repositories, you'll need a personal access token:
 
-### Analyzing a GitHub Repository
+**On Windows (PowerShell):**
 
-Run `python main.py` and paste your target repo's GitHub URL when prompted:
-
+```powershell
+$env:GITHUB_TOKEN="your-token-here"
 ```
+
+**On macOS/Linux:**
+
+```bash
+export GITHUB_TOKEN="your-token-here"
+```
+
+### Basic Usage
+
+RepoToTxt is flexible and works with both GitHub repositories and local projects:
+
+```bash
+# Analyze a GitHub repo
 python main.py https://github.com/username/repository
+
+# Analyze a local directory
+python main.py /path/to/your/project
 ```
 
-Your results will be saved as `outputs/{REPO_NAME}_analysis.txt`
+Your analysis will be saved in the `outputs` folder as `{repo_name}_analysis.txt`.
 
-### Analyzing a Local Directory
+## 🔍 Advanced Usage
 
-To analyze a local directory, provide the path to the directory:
+### Analyze Specific Subdirectories
 
-```
-python main.py /path/to/your/directory
-```
+Working on a large project? Focus on just the parts you need:
 
-### Analyzing Specific Subdirectories
-
-You can now analyze specific subdirectories within a local directory. Use the following syntax:
-
-```
-python main.py /path/to/base/directory [subdir1] [subdir2] [subdir3]
+```bash
+python main.py /path/to/base/directory frontend backend utils
 ```
 
-For example:
+This creates separate analysis files for each subdirectory:
 
+- `outputs/frontend_analysis.txt`
+- `outputs/backend_analysis.txt`
+- `outputs/utils_analysis.txt`
+
+### Skip Files and Folders
+
+Got files you want to exclude? Use the `--skip` flag:
+
+```bash
+python main.py /path/to/directory --skip node_modules temp_files old
 ```
-python main.py ../mycoolapp/cloud checkout functions admin
+
+### Compression Options
+
+Large codebases can be too much for LLMs to handle. Use compression to make your analysis more digestible:
+
+```bash
+# Light compression - preserves most details
+python main.py /path/to/directory --compress light
+
+# Medium compression - balanced approach
+python main.py /path/to/directory --compress medium
+
+# Heavy compression - maximum token reduction
+python main.py /path/to/directory --compress heavy
 ```
 
-This will create separate analysis files for each subdirectory in the `outputs` folder:
+Compression works by:
 
-- `outputs/checkout_analysis.txt`
-- `outputs/functions_analysis.txt`
-- `outputs/admin_analysis.txt`
+- Summarizing lengthy docstrings and comments
+- Reducing repetitive code sections
+- Focusing on the most important files and functions
+- Preserving the overall structure and core functionality
 
-## Configuration
+### Custom Output Filename
 
-Update the value of `ADD_INSTRUCTIONS` in `main.py` if you wish to add LLM instructions to the file.
+Want to specify your own output filename?
 
-## Output
+```bash
+python main.py /path/to/directory --output my-special-analysis
+```
 
-The analysis output includes:
+This saves the result to `outputs/my-special-analysis.txt`.
 
-1. README content
-2. Repository/directory structure
-3. File contents (with optional summarization for large files)
+### Debug Compression
 
-## Note
+If you're curious about how compression is affecting your files:
 
-When analyzing GitHub repositories, ensure that your `GITHUB_TOKEN` environment variable is set correctly.
+```bash
+python main.py /path/to/directory --compress medium --compression-debug
+```
+
+## 🛠️ Configuration
+
+Want to add custom instructions for your LLM? Open `main.py` and update the `ADD_INSTRUCTIONS` variable.
+
+## 📊 Output Structure
+
+Your analysis file includes:
+
+1. **README content** - Project overview and setup instructions
+2. **Repository structure** - Directory and file organization
+3. **File contents** - The actual code (with optional summarization for large files)
+
+## 📝 Notes
+
+- Make sure `GITHUB_TOKEN` is set correctly when analyzing GitHub repositories
+- Binary files and very large files are automatically skipped or summarized
+- The tool respects `.gitignore` patterns in your repository
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests.
+
+## 📜 License
+
+[Include your license information here]
