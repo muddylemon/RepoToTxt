@@ -1,0 +1,2 @@
+Information resides in docs/info.txt
+This file is for testing purposes.

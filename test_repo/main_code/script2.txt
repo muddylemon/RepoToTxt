@@ -1,0 +1,3 @@
+Just some text in script2.txt
+Line two.
+Line three, a bit longer.
