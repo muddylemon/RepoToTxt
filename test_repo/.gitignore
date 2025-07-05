@@ -1,0 +1,8 @@
+# Ignore specific files
+ignored_file.txt
+
+# Ignore file types
+*.log
+
+# Ignore directories
+temp/
